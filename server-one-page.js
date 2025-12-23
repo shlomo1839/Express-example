@@ -1,0 +1,114 @@
+import express from "express";
+import fs from "fs/promises";
+import path from "path";
+
+const __dirname = path.resolve();
+const app = express();
+const PORT = process.env.PORT || 8000;
+const TODOS_PATH = path.join(__dirname, "data", "todos.json");
+// const TODOS_PATH = process.env.TODOS_PATH || __dirname + "/data/todos.json";
+
+
+// ==================== UTILITY FUNCTIONS ====================
+
+export const getNextId = (todos) => {
+  if (!todos || todos.length === 0) {
+    return 1;
+  }
+  let maxValue = 0;
+  todos.forEach((todo) => {
+    if (todo.id > maxValue) {
+      maxValue = todo.id;
+    }
+  });
+  return maxValue + 1;
+};
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath, fs.constants.F_OK);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Read todos from JSON file
+ * @returns {Array} Array of todo objects
+ */
+export const readTodos = async (path) => {
+  if (!(await fileExists(path))) {
+    return [];
+  }
+  try {
+    const data = await fs.readFile(path, "utf8");
+    return JSON.parse(data);
+  } catch (error) {
+    // If file is corrupted or empty, return empty array
+    return [];
+  }
+};
+
+/**
+ * Write todos to JSON file
+ * @param {Array} todos - Array of todo objects
+ */
+export const writeTodos = async (todos, path) => {
+  await fs.writeFile(path, JSON.stringify(todos, null, 2), "utf8");
+};
+
+// =================== MIDDLEWARES ===================
+
+// Body parser
+app.use(express.json());
+
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
+// ================== ROUTES ===================
+
+app.get("/", async (req, res) => {
+  res.json({
+    message: "Welcome to Todo List API",
+    version: "1.0.0",
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+// example headers
+app.get("/headers-example", (req, res) => {
+  const headers = req.headers;
+  console.log(headers);
+  if (headers["x-user-role"] === "simple-user") {
+    return res.status(401).json({
+      success: false,
+      msg: "Simple User is Unauthorized",
+    });
+  } else if (headers["x-user-role"] === "admin") {
+    return res.status(200).json({
+      success: true,
+      msg: "Admin is Authorized",
+    });
+  } else {
+    return res.status(401).json({
+      success: false,
+      msg: "Unauthorized to access this resource",
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}...`);
+});
